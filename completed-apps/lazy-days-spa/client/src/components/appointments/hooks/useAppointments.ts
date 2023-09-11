@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import {
   Dispatch,
@@ -6,7 +7,6 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { useQuery, useQueryClient } from 'react-query';
 
 import { axiosInstance } from '../../../axiosInstance';
 import { queryKeys } from '../../../react-query/constants';
@@ -28,13 +28,6 @@ async function getAppointments(
 ): Promise<AppointmentDateMap> {
   const { data } = await axiosInstance.get(`/appointments/${year}/${month}`);
   return data;
-}
-
-// identity function so select won't show stale data
-// see this Q&A for more details:
-// https://www.udemy.com/course/learn-react-query/learn/#questions/18249892/
-function identity<T>(value: T): T {
-  return value;
 }
 
 // types for hook return object
@@ -106,21 +99,16 @@ export function useAppointments(): UseAppointments {
   //       monthYear.month
   const fallback = {};
 
-  const { data: appointments = fallback } = useQuery(
-    [queryKeys.appointments, monthYear.year, monthYear.month],
-    () => getAppointments(monthYear.year, monthYear.month),
-    {
-      // can't use `undefined` here; need to use identity function
-      // see this Q&A for more details:
-      // https://www.udemy.com/course/learn-react-query/learn/#questions/18249892/
-      select: showAll ? (data) => identity<AppointmentDateMap>(data) : selectFn,
-      ...commonOptions,
-      refetchOnMount: true,
-      refetchOnReconnect: true,
-      refetchOnWindowFocus: true,
-      refetchInterval: 60000, // 60 seconds
-    }
-  );
+  const { data: appointments = fallback } = useQuery({
+    queryKey: [queryKeys.appointments, monthYear.year, monthYear.month],
+    queryFn: () => getAppointments(monthYear.year, monthYear.month),
+    select: showAll ? undefined : selectFn,
+    ...commonOptions,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000,
+  });
 
   /** ****************** END 3: useQuery  ******************************* */
 
